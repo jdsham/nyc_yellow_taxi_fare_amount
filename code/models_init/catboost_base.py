@@ -55,7 +55,7 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
         artifacts (list): A list of paths of each artifact (files) that was generated and saved. Artifacts are uploaded to MLFlow
         W_train (None | np.array): Training data weights if specified. Default is None.
     Returns:
-        tuple: returns the metrics dictionary, artifacts list, and output parameter dictionary. These variables are reported to MLFlow
+        tuple: returns the model, metrics dictionary, artifacts list, and output parameter dictionary. The model and variables are logged to MLFlow
     """
     ####################
     # <Train the Model>
@@ -75,8 +75,8 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
     results = ctb.cv(params=model_params, pool=train_data, nfold=args.cv, shuffle=True)
     results_mean = results.loc[results.shape[0]-1]
 
-    test_model = ctb.train(pool=train_data, params=model_params, eval_set=[valid_data])
-    y_pred = test_model.predict(X_test)
+    model = ctb.train(pool=train_data, params=model_params, eval_set=[valid_data])
+    y_pred = model.predict(X_test)
     #####################
     # </Train the Model>
     #####################
@@ -89,10 +89,10 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
     metrics['cv_mape'] = results_mean["test-MAPE-mean"]
     metrics['cv_r2'] = results_mean["test-R2-mean"]
     
-    metrics['test_mae'] = test_model.evals_result_["validation"]["MAE"][-1]
-    metrics['test_rmse'] = test_model.evals_result_["validation"]["RMSE"][-1]
-    metrics['test_r2'] = test_model.evals_result_["validation"]["R2"][-1]
-    metrics['test_mape'] = test_model.evals_result_["validation"]["MAPE"][-1]
+    metrics['test_mae'] = model.evals_result_["validation"]["MAE"][-1]
+    metrics['test_rmse'] = model.evals_result_["validation"]["RMSE"][-1]
+    metrics['test_r2'] = model.evals_result_["validation"]["R2"][-1]
+    metrics['test_mape'] = model.evals_result_["validation"]["MAPE"][-1]
     #######################
     # </Calculate Metrics>
     #######################
@@ -112,15 +112,15 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
     # <Evaluation Plots>
     #####################
     feat_importance_path = f"{base_path}/{model_name}_{run_name}_feature_importances.png"
-    plot_feature_importance(test_model.get_feature_importance(), feature_names)
+    plot_feature_importance(model.get_feature_importance(), feature_names)
     plt.savefig(feat_importance_path, dpi=200, bbox_inches='tight')
     artifacts.append(feat_importance_path)
     plt.close()
 
-    for key in test_model.evals_result_["learn"].keys():
+    for key in model.evals_result_["learn"].keys():
         metric_plot_path = f"{base_path}/{model_name}{run_name}_learning_curve_{key}.png"
-        train_loss = test_model.evals_result_["learn"][key]
-        test_loss = test_model.evals_result_["validation"][key]
+        train_loss = model.evals_result_["learn"][key]
+        test_loss = model.evals_result_["validation"][key]
         plt.plot(train_loss)
         plt.plot(test_loss)
         plt.xlabel("Iterations")
@@ -132,4 +132,4 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
     ######################
     # </Evaluation Plots>
     ######################
-    return metrics, artifacts, output_parameters
+    return model, metrics, artifacts, output_parameters

@@ -8,6 +8,7 @@ import seaborn as sns
 import argparse
 from typing import Callable
 import json
+import mlflow
 
 base_path = "/home/joe/datum/experiments"
 
@@ -298,3 +299,24 @@ def plot_learning_curve(model, X_train:np.array, y_train:np.array, model_name:st
 ##################
 # </Metric Plots>
 ##################
+
+
+
+############################
+# <Model Logger for MLFlow>
+############################
+def get_model_logger(model_name:str) -> Callable:
+    if model_name in ("lasso", "ridge", "elastic_net", "linear_regression", "huber", "svr", "linear_svr", "sgd", "rf_sklearn"):
+        model_logger = mlflow.sklearn.log_model
+    elif model_name in ("dart_lgbm", "rf_lgbm", "lgbm"):
+        model_logger = mlflow.lightgbm.log_model
+    elif model_name in ("xgboost"):
+        model_logger = mlflow.xgboost.log_model
+    elif model_name in ("catboost"):
+        model_logger = mlflow.catboost.log_model
+    else:
+        raise RuntimeError(f"Model name not recognized to log model to MLFlow. Got model_name = '{model_name}'")
+    return model_logger
+#############################
+# </Model Logger for MLFlow>
+#############################

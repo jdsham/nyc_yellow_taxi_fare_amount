@@ -105,7 +105,7 @@ def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.a
         W_train (None | np.array): Training data weights if specified. Default is None.
 
     Returns:
-        tuple: returns the metrics dictionary, artifacts list, and output parameter dictionary. These variables are reported to MLFlow
+        tuple: returns the model, metrics dictionary, artifacts list, and output parameter dictionary. The model and variables are logged to MLFlow
     """
     ####################
     # <Train the Model>
@@ -127,8 +127,8 @@ def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.a
     results_mean = results.loc[float(args.cv-1)]
     
     evals = {}
-    test_model = xgb.train(model_params, train_data, evals=[(valid_data,"valid_0"), (train_data, "training")], evals_result=evals,custom_metric=custom_metric_xgb)
-    y_pred = test_model.predict(valid_data)
+    model = xgb.train(model_params, train_data, evals=[(valid_data,"valid_0"), (train_data, "training")], evals_result=evals,custom_metric=custom_metric_xgb)
+    y_pred = model.predict(valid_data)
     #####################
     # </Train the Model>
     #####################
@@ -162,7 +162,7 @@ def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.a
     # <Evaluation Plots>
     #####################
     feat_importance_path = f"{base_path}/{model_name}_{run_name}_feature_importances.png"
-    xgb.plot_importance(test_model)
+    xgb.plot_importance(model)
     plt.savefig(feat_importance_path, bbox_inches='tight')
     artifacts.append(feat_importance_path)
     plt.close()
@@ -176,4 +176,4 @@ def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.a
     ######################
     # </Evaluation Plots>
     ######################
-    return metrics, artifacts, output_parameters
+    return model, metrics, artifacts, output_parameters

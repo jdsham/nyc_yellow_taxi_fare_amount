@@ -40,7 +40,7 @@ def run_lgbm(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.arra
         W_train (None | np.array): Training data weights if specified. Default is None.
 
     Returns:
-        tuple: returns the metrics dictionary, artifacts list, and output parameter dictionary. These variables are reported to MLFlow
+        tuple: returns the model, metrics dictionary, artifacts list, and output parameter dictionary. The model and variables are logged to MLFlow
     """
     ####################
     # <Train the Model>
@@ -58,8 +58,8 @@ def run_lgbm(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.arra
     cv_results = lgb.cv(model_params, train_data, nfold=args.cv, shuffle=True, feval=[r2_lgbm], stratified=False)
   
     evals = {}
-    test_model = lgb.train(model_params, train_data, valid_sets=[valid_data, train_data], feval=[r2_lgbm], callbacks = [lgb.record_evaluation(evals)])
-    y_pred = test_model.predict(X_test)
+    model = lgb.train(model_params, train_data, valid_sets=[valid_data, train_data], feval=[r2_lgbm], callbacks = [lgb.record_evaluation(evals)])
+    y_pred = model.predict(X_test)
     #####################
     # </Train the Model>
     #####################
@@ -95,7 +95,7 @@ def run_lgbm(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.arra
     # <Evaluation Plots>
     #####################
     feat_importance_path = f"{base_path}/{model_name}_{run_name}_feature_importances.png"
-    lgb.plot_importance(test_model)
+    lgb.plot_importance(model)
     plt.savefig(feat_importance_path, bbox_inches='tight')
     artifacts.append(feat_importance_path)
     plt.close()
@@ -109,4 +109,4 @@ def run_lgbm(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.arra
     ######################
     # </Evaluation Plots>
     ######################
-    return metrics, artifacts, output_parameters
+    return model, metrics, artifacts, output_parameters

@@ -1,8 +1,9 @@
 import pandas as pd
 import argparse
 import mlflow
-from custom_funcs import get_model_to_run, parse_input_args, scaler_dict, base_path
+from custom_funcs import get_model_to_run, parse_input_args, scaler_dict, base_path, get_model_logger
 from sklearn.model_selection import train_test_split
+from mlflow.data.sources import LocalArtifactDatasetSource
 
 def main() -> None:
     """Runs the main experiment
@@ -28,7 +29,15 @@ def main() -> None:
     # Load the data
     df = pd.read_parquet(args.data)
 
+    source = LocalArtifactDatasetSource(args.data)
+    dataset = mlflow.data.from_pandas(
+    df[features + [target]], source=source, name=args.data.split('/')[-1].split('.parquet')[0], targets=target)
+
     train_df, test_df = train_test_split(df, test_size=0.2, random_state=args.random_state)
+    
+    # Cleanup for memory
+    del df
+    
     n_train_examples = train_df.shape[0]
     n_test_examples = test_df.shape[0]
 
@@ -68,7 +77,7 @@ def main() -> None:
 
     model_to_run = get_model_to_run(args)
 
-    metrics, artifacts, output_parameters = model_to_run(X_train, y_train, X_test, y_test, args, base_path, run_name, feature_names, metrics, artifacts, W_train)
+    model, metrics, artifacts, output_parameters = model_to_run(X_train, y_train, X_test, y_test, args, base_path, run_name, feature_names, metrics, artifacts, W_train)
     ###################
     # <Log Parameters>
     ###################
@@ -107,6 +116,25 @@ def main() -> None:
     ###################
     # </Log Artifacts>
     ###################
+
+    ################
+    # <Log Dataset>
+    ################
+    mlflow.log_input(dataset, context="train/test")
+    #################
+    # </Log Dataset>
+    #################
+
+    ##############
+    # <Log Model>
+    ##############
+    signature = mlflow.models.infer_signature(X_train, y_train)
+    model_logger = get_model_logger(args.model)
+    artifact_path = "model"
+    model_logger(model, artifact_path, signature=signature)
+    ###############
+    # </Log Model>
+    ###############
 
     mlflow.end_run()
 

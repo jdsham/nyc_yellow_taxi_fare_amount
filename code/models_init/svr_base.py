@@ -24,7 +24,7 @@ def run_svr(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array
         W_train (None | np.array): Training data weights if specified. Default is None.
 
     Returns:
-        tuple: returns the metrics dictionary, artifacts list, and output parameter dictionary. These variables are reported to MLFlow
+        tuple: returns the model, metrics dictionary, artifacts list, and output parameter dictionary. The model and variables are logged to MLFlow
     """
     ####################
     # <Train the Model>
@@ -70,4 +70,4 @@ def run_svr(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array
     ###################
     # </Metric Curves>
     ###################
-    return metrics, artifacts, output_parameters
+    return model, metrics, artifacts, output_parameters
