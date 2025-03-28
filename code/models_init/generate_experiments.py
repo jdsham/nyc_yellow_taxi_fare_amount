@@ -3,30 +3,27 @@
 # Each experiment will be excuted via bash script
 
 experiments = []
-train_data = "/home/joe/datum/fare_amount_init_6_8_2023.parquet"
-test_data = "/home/joe/datum/fare_amount_init_9_2023.parquet"
-experiment_name = "fare_amount_init3"
+data = "/home/joe/datum/fare_amount_init_clean_6_8_2023.parquet"
+experiment_name = "fare_amount_rework"
+features = ["trip_distance,trip_duration_min", "trip_distance,trip_duration_min,r,theta", "r,theta"]
+run_name = "full_data"
 random_state = 42
-remove_outliers = ["--remove_outliers_train --remove_outliers_test", "--remove_outliers_train", ""]
 scalers = ["asis"]
 models = ["lgbm", "xgboost", "catboost", "rf_sklearn", "rf_lgbm", "dart_lgbm"]
 for model in models:
-    for outliers in remove_outliers:
+    for feature in features:
         for scaler in scalers:
-            code = f"train_model.py --model {model} --train_data {train_data} --test_data {test_data} {outliers} --scaler {scaler} --random_state {random_state} --experiment_name {experiment_name}"
-            code = code.replace("  "," ")
-            #experiments.append(code)
+            code = f"train_model.py --run_name {run_name} --model {model} --data {data} --features {feature} --scaler {scaler} --random_state {random_state} --experiment_name {experiment_name}"
+            experiments.append(code)
 
 
-scalers = ["std", "minmax", "robust"]
-#models = ["linear_regression", "lasso", "ridge", "elastic_net"]
-models = ["huber", "sgd"]
+scalers = ["minmax"]
+models = ["linear_regression", "lasso", "ridge", "elastic_net", "huber", "sgd"]
 
 for model in models:
-    for outliers in remove_outliers:
+    for feature in features:
         for scaler in scalers:
-            code = f"train_model.py --model {model} --train_data {train_data} --test_data {test_data} {outliers} --scaler {scaler} --random_state {random_state} --experiment_name {experiment_name}"
-            code = code.replace("  "," ")
+            code = f"train_model.py --run_name {run_name} --model {model} --data {data} --features {feature} --scaler {scaler} --random_state {random_state} --experiment_name {experiment_name}"
             experiments.append(code)
 
 

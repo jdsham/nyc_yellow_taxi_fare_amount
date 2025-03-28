@@ -3,18 +3,19 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error, mean_absolute_percentage_error
 from sklearn.model_selection import learning_curve
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
-from sklearn.pipeline import Pipeline
 import matplotlib.pyplot as plt
 import seaborn as sns
 import argparse
 from typing import Callable
-from sklearn.base import BaseEstimator, TransformerMixin
 
 base_path = "/home/joe/datum/experiments"
 
 ####################
 #<Input Arg Parsing>
 ####################
+def list_of_strings(arg):
+    return arg.split(',')
+
 def parse_input_args(parser:argparse.ArgumentParser) -> argparse.ArgumentParser:
     """Adds parser arguements to the ArgumentParser object.
     Used for CLI based runs for experiments
@@ -25,94 +26,19 @@ def parse_input_args(parser:argparse.ArgumentParser) -> argparse.ArgumentParser:
     Returns:
         argparse.ArgumentParser: the argument parser with added arguements
     """
-    parser.add_argument("--model", type=str, required=True, help="Specify the model to use. Supported models are lgbm, xgboost, catboost, lasso, ridge, elastic_net, linear_regression")
-    parser.add_argument("--train_data", type=str, help="path to input training data")
-    parser.add_argument("--test_data", type=str, help="path to input testing data")
-    parser.add_argument("--remove_outliers_train", action="store_true", help="Specify if outliers determined from IQR method are to be removed from training data")
-    parser.add_argument("--remove_outliers_test", action="store_true", help="Specify if outliers determined from IQR method are to be removed from testing data")
-    parser.add_argument("--scaler", type=str, required=False, default="minmax", help="How to scale numerical features")
-    parser.add_argument("--random_state", type=int, required=False, default=42, help="Specify the random states to use")
-    parser.add_argument("--cv", type=int, required=False, default=5, help="Specify number of CV folds to perform")    
-    parser.add_argument("--experiment_name", type=str, required=False, default=None, help="Name of the data science experiment")
-    parser.add_argument("--registered_model_name", type=str, required=False, default=None, help="Name of the model to register")
+    parser.add_argument("--run_name", type=str, default="stock", help="A given run name to help describe the experiment being performed. Default is 'stock'.")
+    parser.add_argument("--model", type=str, required=True, help="Specify the model to use. Supported models are lgbm, xgboost, catboost, lasso, ridge, elastic_net, linear_regression, rf_sklearn, rf_lgbm, dart_lgbm, sgd, and huber.")
+    parser.add_argument("--data", type=str, help="path to input data for train-test split.")
+    parser.add_argument("--features", type=list_of_strings, default="trip_distance,trip_duration_min", help="Which features should be included for training.")
+    parser.add_argument("--scaler", type=str, required=False, default="minmax", help="How to scale numerical features.")
+    parser.add_argument("--random_state", type=int, required=False, default=42, help="Specify the random states to use.")
+    parser.add_argument("--cv", type=int, required=False, default=5, help="Specify number of CV folds to perform.")    
+    parser.add_argument("--experiment_name", type=str, required=False, default=None, help="Name of the data science experiment.")
+    parser.add_argument("--registered_model_name", type=str, required=False, default=None, help="Name of the model to register.")
     return parser
 #####################
 #</Input Arg Parsing>
 #####################
-
-##########################
-# <Custom Pipeline Steps>
-##########################   
-class RemoveOutliersDistance(BaseEstimator, TransformerMixin):
-    """Filters data to keep records with trip_distance between IQR outlier limits.
-    These limits were determined from EDA
-    """
-    def __init__(self, column_name="trip_distance"):
-        self.column_name = column_name
-        self.fitted_ = False
-
-
-    def calc_outliers(self, df:pd.DataFrame):
-        summary = df[self.column_name].describe()
-        iqr = summary.loc["75%"] - summary.loc["25%"]
-        self.upper_limit = summary.loc["75%"] + 1.5*iqr
-        self.lower_limit = summary.loc["25%"] - 1.5*iqr
-        self.fitted_ = True
-
-
-    def fit(self, df:pd.DataFrame, _=None):
-        self.calc_outliers(df)
-        return self
-
-
-    def transform(self, df:pd.DataFrame):
-        df = df.loc[(df[self.column_name] >= self.lower_limit) & (df[self.column_name] <= self.upper_limit)]
-        return df
-
-
-    def fit_transform(self, df:pd.DataFrame, _=None):
-        self.fit(df, _)
-        df = self.transform(df)
-        return df
-
-
-class RemoveOutliersDuration(BaseEstimator, TransformerMixin):
-    """Filters data to keep records with trip_duration_min between IQR outlier limits.
-    These limits were determined from EDA
-    """
-    def __init__(self, column_name="trip_duration_min"):
-        self.column_name = column_name
-        self.fitted_ = False
-
-
-    def calc_outliers(self, df:pd.DataFrame):
-        summary = df[self.column_name].describe()
-        iqr = summary.loc["75%"] - summary.loc["25%"]
-        self.upper_limit = summary.loc["75%"] + 1.5*iqr
-        self.lower_limit = summary.loc["25%"] - 1.5*iqr
-        self.fitted_ = True
-
-
-    def fit(self, df:pd.DataFrame, _=None):
-        self.calc_outliers(df)
-        return self
-
-
-    def transform(self, df:pd.DataFrame):
-        df = df.loc[(df[self.column_name] >= self.lower_limit) & (df[self.column_name] <= self.upper_limit)]
-        return df
-
-
-    def fit_transform(self, df:pd.DataFrame, _=None):
-        self.fit(df, _)
-        df = self.transform(df)
-        return df
-
-
-###########################
-# </Custom Pipeline Steps>
-###########################
-
 
 def get_model_to_run(args:argparse.ArgumentParser) -> Callable:
     """Parses the args to select the function that trains and evaluates the specified model.
@@ -354,6 +280,7 @@ def plot_learning_curve(model, X_train:np.array, y_train:np.array, model_name:st
     plt.xlabel("Number of training examples")
     plt.ylabel(f"{metric_name}")
     plt.legend(loc="lower right")
+    plt.title(f"Learning Curve for {model_name} - {run_name}")
     plt.savefig(learning_curve_rmse_path, dpi=200, bbox_inches='tight')
     artifacts.append(learning_curve_rmse_path)
     return artifacts

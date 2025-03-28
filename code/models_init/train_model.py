@@ -1,8 +1,8 @@
 import pandas as pd
 import argparse
 import mlflow
-from custom_funcs import get_model_to_run, RemoveOutliersDistance, RemoveOutliersDuration, parse_input_args, scaler_dict, base_path
-from sklearn.pipeline import Pipeline
+from custom_funcs import get_model_to_run, parse_input_args, scaler_dict, base_path
+from sklearn.model_selection import train_test_split
 
 def main() -> None:
     """Runs the main experiment
@@ -19,28 +19,18 @@ def main() -> None:
 
     # Define consants
     target = "fare_amount"
-    features =  ["trip_distance", "trip_duration_min"]
+    features =  args.features
 
     #####################
     # <Prepare the Data>
     #####################
     # Load the data
-    train_df = pd.read_parquet(args.train_data)
-    test_df = pd.read_parquet(args.test_data)
+    df = pd.read_parquet(args.data)
 
-    # Pipeline to remove outliers
-    outliers_pipeline = Pipeline([
-            ("outliers_distance", RemoveOutliersDistance())
-            ,("outliers_duration", RemoveOutliersDuration())
-            ])
-    
-    # If no transformations specified, then just use df as-is
-    if args.remove_outliers_train:
-        outliers_pipeline.fit(train_df)
-        train_df = outliers_pipeline.fit_transform(train_df)
-        if args.remove_outliers_test:
-            test_df = outliers_pipeline.transform(test_df)
-    
+    train_df, test_df = train_test_split(df, test_size=0.2, random_state=args.random_state)
+    n_train_examples = train_df.shape[0]
+    n_test_examples = test_df.shape[0]
+
     # Scale the data
     if args.scaler != "asis":
         scaler = scaler_dict[args.scaler]()
@@ -73,13 +63,13 @@ def main() -> None:
     ###################
     data_prep_params = {
         "model" : args.model,
-        "remove_outliers_train" : args.remove_outliers_train,
-        "remove_outliers_test": args.remove_outliers_test,
         "scaler": args.scaler,
         "random_state": args.random_state,
         "cv": args.cv,
-        "train_data": args.train_data.split('/')[-1].split('.')[0],
-        "test_data": args.test_data.split('/')[-1].split('.')[0]
+        "n_training_examples": f"{n_train_examples:,}",
+        "n_testing_examples": f"{n_test_examples:,}",
+        "features" : features,
+        "run_name": run_name
         }
     params = data_prep_params | output_parameters
     mlflow.log_params(params)

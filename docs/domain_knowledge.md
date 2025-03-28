@@ -57,3 +57,18 @@ Some fees and taxes are universally applied, while others depend upon the time o
 Other fees, such as tolls, also depend upon the route taken.
 To provide an estimated total fare amount (minus tips) would require some additional work and potentially additional information provided by the user.
 Note that Uber and Lyft users must also pay the same fees.
+
+## What About Outliers?
+The presence of outliers can be problematic for predictive models.
+This begs the question: how are outliers defined?
+Outliers can be defined statistically and also from a domain knowledge perspective.
+For taxicab rides, there could be a number of ways that a ride becomes an outlier.
+Some examples of outliers are:
+1. A passenger takes a ride, makes a stop but keeps the meter running, and then continues on the trip.
+2. The taxicab ride encounters a traffic accident.
+3. The taxicab ride encounters road work or road closures.
+4. Unusual traffic patterns impact the duration of the ride.
+
+The data itself does not contain this information directly, and it may be impossible to directly identify what kind of outlier is being detected.
+It will take some effort to identify the outliers and then remove them.
+The goal of the project is to develop a model to predict the fare price during average traffic conditions.
