@@ -10,7 +10,7 @@ def main() -> None:
     # Things that must be defined
     metrics = {}
     artifacts = []
-    run_name = "stock" 
+
 
     # Input Arguments
     parser = argparse.ArgumentParser()
@@ -20,7 +20,8 @@ def main() -> None:
     # Define consants
     target = "fare_amount"
     features =  args.features
-
+    run_name = args.run_name
+    
     #####################
     # <Prepare the Data>
     #####################
