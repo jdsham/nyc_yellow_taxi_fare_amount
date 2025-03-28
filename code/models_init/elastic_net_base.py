@@ -5,7 +5,7 @@ from custom_funcs import calc_cv_metrics_sklearn, calc_metrics_sklearn, plot_res
 import argparse
 
 
-def run_elastic_net(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list) -> tuple:
+def run_elastic_net(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list, W_train:np.array=None) -> tuple:
     """Uses the SKlearn ElasticNet and ElasticNetCV models to train, perform CV, and evaluate model performance with validation data.
     This includes calculating metrics and generating plots to evaluate model performance.
     This function is called by a python file that runs the actual data science experiment.
@@ -21,6 +21,7 @@ def run_elastic_net(X_train:np.array, y_train:np.array, X_test:np.array, y_test:
         feature_names (list): names of the features
         metrics (dict): a dictionary containing computed metrics by name and value. These values are reported to MLFlow
         artifacts (list): A list of paths of each artifact (files) that was generated and saved. Artifacts are uploaded to MLFlow
+        W_train (None | np.array): Training data weights if specified. Default is None.
 
     Returns:
         tuple: returns the metrics dictionary, artifacts list, and output parameter dictionary. These variables are reported to MLFlow
@@ -41,6 +42,10 @@ def run_elastic_net(X_train:np.array, y_train:np.array, X_test:np.array, y_test:
     output_parameters["best_coefs"] = best_coefs
 
     model_params = {"alpha":best_alpha, "random_state":args.random_state}
+    # Add or update model parameters
+    for key, val in args.model_params.items():
+        model_params[key] = val
+
     model = ElasticNet(**model_params)
     scoring = ["neg_mean_absolute_error", "neg_root_mean_squared_error", "neg_mean_absolute_percentage_error", "r2"]
     cv = cross_validate(model, X_train, y_train, scoring=scoring, cv=args.cv, n_jobs=-1)

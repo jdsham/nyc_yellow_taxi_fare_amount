@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import argparse
 from typing import Callable
+import json
 
 base_path = "/home/joe/datum/experiments"
 
@@ -27,8 +28,10 @@ def parse_input_args(parser:argparse.ArgumentParser) -> argparse.ArgumentParser:
         argparse.ArgumentParser: the argument parser with added arguements
     """
     parser.add_argument("--run_name", type=str, default="stock", help="A given run name to help describe the experiment being performed. Default is 'stock'.")
-    parser.add_argument("--model", type=str, required=True, help="Specify the model to use. Supported models are lgbm, xgboost, catboost, lasso, ridge, elastic_net, linear_regression, rf_sklearn, rf_lgbm, dart_lgbm, sgd, and huber.")
+    parser.add_argument("--model", type=str, required=True, help="Specify the model to use. Supported models are lgbm, xgboost, catboost, lasso, ridge, elastic_net, linear_regression, rf_sklearn, rf_lgbm, dart_lgbm, sgd, huber, linear_svr, and svr.")
     parser.add_argument("--data", type=str, help="path to input data for train-test split.")
+    parser.add_argument("--model_params", type=json.loads, default=dict(), help="Model parameters specified as JSON in string format. Will be converted into a dictionary.")
+    parser.add_argument("--weights", type=str, default=None, help="The name of the column containing weights")
     parser.add_argument("--features", type=list_of_strings, default="trip_distance,trip_duration_min", help="Which features should be included for training.")
     parser.add_argument("--scaler", type=str, required=False, default="minmax", help="How to scale numerical features.")
     parser.add_argument("--random_state", type=int, required=False, default=42, help="Specify the random states to use.")
@@ -56,6 +59,8 @@ def get_model_to_run(args:argparse.ArgumentParser) -> Callable:
     > "sgd" -> Sklearn's SGDRegressor
     > "huber" -> SKlearn's HuberRegression
     > "rf_sklearn" -> Sklearn's RandomForest
+    > "linear_svr" -> Sklearn's Linear SVR
+    > "svr" -> Support Vector Machine Regression
 
     Args:
         args (argparse.ArgumentParser): The input args for the experiment containing args.model
@@ -102,6 +107,12 @@ def get_model_to_run(args:argparse.ArgumentParser) -> Callable:
     elif args.model == "rf_sklearn":
         from rf_sklearn_base import run_rf_sklearn
         model_to_run = run_rf_sklearn
+    elif args.model == "linear_svr":
+        from linear_svr_base import run_linear_svr
+        model_to_run = run_linear_svr
+    elif args.model == "svr":
+        from svr_base import run_svr
+        model_to_run = run_svr
     else:
         raise RuntimeError(f"No valid model was specified in the args. The specified args.model = '{args.model}'")
     return model_to_run

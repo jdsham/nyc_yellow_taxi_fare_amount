@@ -5,7 +5,7 @@ from custom_funcs import calc_cv_metrics_sklearn, calc_metrics_sklearn, plot_res
 import argparse
 
 
-def run_linear_regression(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list) -> tuple:
+def run_linear_regression(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list, W_train:np.array=None) -> tuple:
     """Uses Sklearn's LinearRegression model to train, perform CV, and evaluate model performance with validation data.
     This includes calculating metrics and generating plots to evaluate model performance.
     This function is called by a python file that runs the actual data science experiment.
@@ -21,6 +21,7 @@ def run_linear_regression(X_train:np.array, y_train:np.array, X_test:np.array, y
         feature_names (list): names of the features
         metrics (dict): a dictionary containing computed metrics by name and value. These values are reported to MLFlow
         artifacts (list): A list of paths of each artifact (files) that was generated and saved. Artifacts are uploaded to MLFlow
+        W_train (None | np.array): Training data weights if specified. Default is None.
 
     Returns:
         tuple: returns the metrics dictionary, artifacts list, and output parameter dictionary. These variables are reported to MLFlow
@@ -31,11 +32,16 @@ def run_linear_regression(X_train:np.array, y_train:np.array, X_test:np.array, y
     output_parameters = dict()
     model_name = args.model
 
-    model = LinearRegression()
+    model_params = dict()
+    # Add or update model parameters
+    for key, val in args.model_params.items():
+        model_params[key] = val
+
+    model = LinearRegression(**model_params)
     scoring = ["neg_mean_absolute_error", "neg_root_mean_squared_error", "neg_mean_absolute_percentage_error", "r2"]
     cv = cross_validate(model, X_train, y_train, scoring=scoring, cv=args.cv, n_jobs=-1)
 
-    model = LinearRegression()
+    model = LinearRegression(**model_params)
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     best_coefs = list(zip(feature_names,model.coef_))
@@ -61,7 +67,7 @@ def run_linear_regression(X_train:np.array, y_train:np.array, X_test:np.array, y
     # Truth vs Prediction
     artifacts = plot_true_vs_pred(y_test, y_pred, model_name, run_name, base_path, artifacts)
     # Learning Curve
-    artifacts = plot_learning_curve(LinearRegression(), X_train, y_train, model_name, run_name, artifacts, metric="rmse")
+    artifacts = plot_learning_curve(LinearRegression(**model_params), X_train, y_train, model_name, run_name, artifacts, metric="rmse")
     ###################
     # </Metric Curves>
     ###################

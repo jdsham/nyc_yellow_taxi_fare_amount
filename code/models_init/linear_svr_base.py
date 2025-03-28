@@ -1,12 +1,12 @@
-from sklearn.linear_model import SGDRegressor
+from sklearn.svm import LinearSVR
 import numpy as np
 from sklearn.model_selection import cross_validate
 from custom_funcs import calc_cv_metrics_sklearn, calc_metrics_sklearn, plot_residuals, plot_true_vs_pred, plot_learning_curve
 import argparse
 
 
-def run_sgd(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list, W_train:np.array=None) -> tuple:
-    """Uses Sklearn's SGDRegressor model to train, perform CV, and evaluate model performance with validation data.
+def run_linear_svr(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list, W_train:np.array=None) -> tuple:
+    """Uses Sklearn's Linear SVR model to train, perform CV, and evaluate model performance with validation data.
     This includes calculating metrics and generating plots to evaluate model performance.
     This function is called by a python file that runs the actual data science experiment.
 
@@ -32,20 +32,18 @@ def run_sgd(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array
     output_parameters = dict()
     model_name = args.model
 
-    model_params = {"random_state": args.random_state}
+    model_params = dict()
     # Add or update model parameters
     for key, val in args.model_params.items():
         model_params[key] = val
 
-    model = SGDRegressor(**model_params)
+    model = LinearSVR(**model_params)
     scoring = ["neg_mean_absolute_error", "neg_root_mean_squared_error", "neg_mean_absolute_percentage_error", "r2"]
-    cv = cross_validate(model, X_train, y_train, scoring=scoring, cv=args.cv, n_jobs=-1, params={"sample_weight": W_train} )
+    cv = cross_validate(model, X_train, y_train, scoring=scoring, cv=args.cv, n_jobs=-1, params={"sample_weight": W_train})
 
-    model = SGDRegressor(**model_params)
+    model = LinearSVR(**model_params)
     model.fit(X_train, y_train, sample_weight=W_train)
     y_pred = model.predict(X_test)
-    best_coefs = list(zip(feature_names,model.coef_))
-    output_parameters["best_coefs"] = best_coefs
     #####################
     # </Train the Model>
     #####################
@@ -67,7 +65,7 @@ def run_sgd(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array
     # Truth vs Prediction
     artifacts = plot_true_vs_pred(y_test, y_pred, model_name, run_name, base_path, artifacts)
     # Learning Curve
-    artifacts = plot_learning_curve(SGDRegressor(**model_params), X_train, y_train, model_name, run_name, artifacts, metric="rmse")
+    artifacts = plot_learning_curve(LinearSVR(**model_params), X_train, y_train, model_name, run_name, artifacts, metric="rmse")
     ###################
     # </Metric Curves>
     ###################

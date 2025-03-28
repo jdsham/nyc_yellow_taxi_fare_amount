@@ -86,7 +86,7 @@ def custom_metric_xgb(y_pred:np.array, data:xgb.DMatrix) -> list:
     return [r2, mape, mae]
 
 
-def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list) -> tuple:
+def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list, W_train:np.array=None) -> tuple:
     """Uses the XGBoost gradient boosted trees regression model to train, perform CV, and evaluate model performance with validation data.
     This includes calculating metrics and generating plots to evaluate model performance.
     This function is called by a python file that runs the actual data science experiment.
@@ -102,6 +102,7 @@ def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.a
         feature_names (list): names of the features
         metrics (dict): a dictionary containing computed metrics by name and value. These values are reported to MLFlow
         artifacts (list): A list of paths of each artifact (files) that was generated and saved. Artifacts are uploaded to MLFlow
+        W_train (None | np.array): Training data weights if specified. Default is None.
 
     Returns:
         tuple: returns the metrics dictionary, artifacts list, and output parameter dictionary. These variables are reported to MLFlow
@@ -113,10 +114,14 @@ def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.a
     model_name = args.model
 
     # Create XGBoost DMatrices
-    train_data = xgb.DMatrix(X_train, label=y_train, feature_names=feature_names)
+    train_data = xgb.DMatrix(X_train, label=y_train, feature_names=feature_names, weight=W_train)
     valid_data = xgb.DMatrix(X_test, label=y_test, feature_names=feature_names)
 
     model_params = {"objective": "reg:squarederror",  "random_state": args.random_state,}
+    # Add or update model parameters
+    for key, val in args.model_params.items():
+        model_params[key] = val
+
     base_metric_names = ["mae", "rmse", "r2", "mape"]
     results = xgb.cv(model_params, train_data, num_boost_round=10, nfold=args.cv, shuffle=True, metrics=["rmse"], custom_metric=custom_metric_xgb )
     results_mean = results.loc[float(args.cv-1)]

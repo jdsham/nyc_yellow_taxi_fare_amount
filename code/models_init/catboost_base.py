@@ -15,29 +15,29 @@ def plot_feature_importance(importance:ArrayLike, names:list) -> None:
         names (list): feature names
     """
     model_type = "CatBoost"
-    #Create arrays from feature importance and feature names
+    # Create arrays from feature importance and feature names
     feature_importance = np.array(importance)
     feature_names = np.array(names)
     
-    #Create a DataFrame using a dictionary
+    # Create a DataFrame using a dictionary
     data={'feature_names':feature_names,'feature_importance':feature_importance}
     fi_df = pd.DataFrame(data)
     
-    #Sort the DataFrame in order decreasing feature importance
+    # Sort the DataFrame in order decreasing feature importance
     fi_df.sort_values(by=['feature_importance'], ascending=False,inplace=True)
     
-    #Define size of bar plot
+    # Define size of bar plot
     plt.figure(figsize=(10,8))
-    #Plot Searborn bar chart
+    # Plot Searborn bar chart
     sns.barplot(x=fi_df['feature_importance'], y=fi_df['feature_names'])
-    #Add chart labels
+    # Add chart labels
     plt.title(model_type + 'Feature Importance')
     plt.xlabel('Feature Importance')
     plt.ylabel('Feature Name')
 
 
 
-def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list) -> tuple:
+def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list, W_train:np.array=None) -> tuple:
     """Uses the CatBoost regression model to train, perform CV, and evaluate model performance with validation data.
     This includes calculating metrics and generating plots to evaluate model performance.
     This function is called by a python file that runs the actual data science experiment.
@@ -53,7 +53,7 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
         feature_names (list): names of the features
         metrics (dict): a dictionary containing computed metrics by name and value. These values are reported to MLFlow
         artifacts (list): A list of paths of each artifact (files) that was generated and saved. Artifacts are uploaded to MLFlow
-
+        W_train (None | np.array): Training data weights if specified. Default is None.
     Returns:
         tuple: returns the metrics dictionary, artifacts list, and output parameter dictionary. These variables are reported to MLFlow
     """
@@ -64,10 +64,14 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
     model_name = args.model
 
     # Create Catboost Pools
-    train_data = ctb.Pool(X_train, label=y_train, feature_names=feature_names)
+    train_data = ctb.Pool(X_train, label=y_train, feature_names=feature_names, weight=W_train)
     valid_data = ctb.Pool(X_test, label=y_test, feature_names=feature_names)
 
     model_params = {"objective": "RMSE", "num_boost_round":100, "eval_metric": "RMSE", "custom_metric": ["MAE", "R2", 'MAPE'], "verbose":False,"random_state": args.random_state,}
+    # Add or update model parameters
+    for key, val in args.model_params.items():
+        model_params[key] = val
+
     results = ctb.cv(params=model_params, pool=train_data, nfold=args.cv, shuffle=True)
     results_mean = results.loc[results.shape[0]-1]
 

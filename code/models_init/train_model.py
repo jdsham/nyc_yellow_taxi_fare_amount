@@ -32,6 +32,16 @@ def main() -> None:
     n_train_examples = train_df.shape[0]
     n_test_examples = test_df.shape[0]
 
+    if args.weights is not None:
+        weight_col = args.weights
+        W_train = train_df[weight_col].to_frame()
+        weight_scaler = scaler_dict["minmax"]()
+        W_train = weight_scaler.fit_transform(W_train).reshape(-1)
+        train_df = train_df.drop(columns=weight_col)
+        test_df = test_df.drop(columns=weight_col)
+    else:
+        W_train = None
+
     # Scale the data
     if args.scaler != "asis":
         scaler = scaler_dict[args.scaler]()
@@ -58,7 +68,7 @@ def main() -> None:
 
     model_to_run = get_model_to_run(args)
 
-    metrics, artifacts, output_parameters = model_to_run(X_train, y_train, X_test, y_test, args, base_path, run_name, feature_names, metrics, artifacts)
+    metrics, artifacts, output_parameters = model_to_run(X_train, y_train, X_test, y_test, args, base_path, run_name, feature_names, metrics, artifacts, W_train)
     ###################
     # <Log Parameters>
     ###################
@@ -70,9 +80,11 @@ def main() -> None:
         "n_training_examples": f"{n_train_examples:,}",
         "n_testing_examples": f"{n_test_examples:,}",
         "features" : features,
-        "run_name": run_name
+        "run_name": run_name,
+        "weights": args.weights
         }
     params = data_prep_params | output_parameters
+    params = params | args.model_params
     mlflow.log_params(params)
     ####################
     # </Log Parameters>

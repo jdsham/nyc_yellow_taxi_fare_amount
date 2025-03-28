@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from custom_funcs import calc_metrics_sklearn, plot_residuals, plot_true_vs_pred, plot_learning_curve
 import argparse
 
-def run_rf_sklearn(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list) -> tuple:
+def run_rf_sklearn(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list, W_train:np.array=None) -> tuple:
     """Uses the SKlearn RandomForestRegressor model to train and evaluate model performance with validation data.
     This includes calculating metrics and generating plots to evaluate model performance.
     This function is called by a python file that runs the actual data science experiment.
@@ -21,6 +21,7 @@ def run_rf_sklearn(X_train:np.array, y_train:np.array, X_test:np.array, y_test:n
         feature_names (list): names of the features
         metrics (dict): a dictionary containing computed metrics by name and value. These values are reported to MLFlow
         artifacts (list): A list of paths of each artifact (files) that was generated and saved. Artifacts are uploaded to MLFlow
+        W_train (None | np.array): Training data weights if specified. Default is None.
 
     Returns:
         tuple: returns the metrics dictionary, artifacts list, and output parameter dictionary. These variables are reported to MLFlow
@@ -31,8 +32,13 @@ def run_rf_sklearn(X_train:np.array, y_train:np.array, X_test:np.array, y_test:n
     output_parameters = dict()
     model_name = args.model
 
+    model_params = {"max_depth":6, "n_jobs":-1, "random_state":args.random_state, "oob_score":True}
+    # Add or update model parameters
+    for key, val in args.model_params.items():
+        model_params[key] = val
+
     # CV will be skipped and instead OOB scoring will be used to evaluate the model
-    model = RandomForestRegressor(max_depth=6, n_jobs=-1, random_state=args.random_state, oob_score=True)
+    model = RandomForestRegressor(**model_params)
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     #####################
