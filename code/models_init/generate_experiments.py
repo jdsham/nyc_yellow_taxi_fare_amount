@@ -3,10 +3,10 @@
 # Each experiment will be excuted via bash script
 
 experiments = []
-data = "/home/joe/datum/fare_amount_init_clean_6_8_2023_unique.parquet"
-experiment_name = "fare_amount_rework"
+data = "/home/joe/datum/fare_amount_init_clean_6_8_2023.parquet"
+experiment_name = "fare_amount_initial"
 features = ["trip_distance,trip_duration_min", "trip_distance,trip_duration_min,r,theta", "r,theta"]
-run_name = "unique_data"
+run_name = "initial_stock"
 random_state = 42
 scalers = ["asis"]
 models = ["lgbm", "xgboost", "catboost", "rf_sklearn", "rf_lgbm", "dart_lgbm"]
@@ -18,7 +18,7 @@ for model in models:
 
 
 scalers = ["minmax"]
-models = ["linear_regression", "lasso", "ridge", "elastic_net", "huber", "sgd"]
+models = ["linear_regression", "lasso", "ridge", "elastic_net", "huber", "sgd", "linear_svr", "mlp_sklearn"]
 
 for model in models:
     for feature in features:

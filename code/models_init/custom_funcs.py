@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from pandas.plotting import table
 from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error, mean_absolute_percentage_error
 from sklearn.model_selection import learning_curve
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
@@ -9,6 +10,7 @@ import argparse
 from typing import Callable
 import json
 import mlflow
+plt.switch_backend('agg')
 
 base_path = "/home/joe/datum/experiments"
 
@@ -114,6 +116,9 @@ def get_model_to_run(args:argparse.ArgumentParser) -> Callable:
     elif args.model == "svr":
         from svr_base import run_svr
         model_to_run = run_svr
+    elif args.model == "mlp_sklearn":
+        from mlp_sklearn import run_mlp_sklearn
+        model_to_run = run_mlp_sklearn
     else:
         raise RuntimeError(f"No valid model was specified in the args. The specified args.model = '{args.model}'")
     return model_to_run
@@ -197,7 +202,7 @@ def plot_residuals(y_true:np.array, y_pred:np.array, model_name:str, run_name:st
     plt.title(f"True Values vs. Residuals for {model_name} - {run_name}")
     plt.xlabel("True Values")
     plt.ylabel("Residuals")
-    plt.savefig(errors_fig_path, dpi=200, bbox_inches='tight')
+    plt.savefig(errors_fig_path, dpi=100, bbox_inches='tight')
     artifacts.append(errors_fig_path)
     plt.close()
 
@@ -206,7 +211,7 @@ def plot_residuals(y_true:np.array, y_pred:np.array, model_name:str, run_name:st
     sns.boxenplot(x=errors)
     plt.title(f"Boxen Plot of Residuals for {model_name} - {run_name}")
     plt.xlabel("Errors")
-    plt.savefig(errors_boxen_fig_path, dpi=200)
+    plt.savefig(errors_boxen_fig_path, dpi=100)
     artifacts.append(errors_boxen_fig_path)
     plt.close()
 
@@ -215,7 +220,7 @@ def plot_residuals(y_true:np.array, y_pred:np.array, model_name:str, run_name:st
     sns.boxplot(x=errors)
     plt.title(f"Box Plot of Residuals for {model_name} - {run_name}")
     plt.xlabel("Errors")
-    plt.savefig(errors_box_fig_path, dpi=200)
+    plt.savefig(errors_box_fig_path, dpi=100)
     artifacts.append(errors_box_fig_path)
     plt.close()
     return artifacts
@@ -245,7 +250,7 @@ def plot_true_vs_pred(y_true:np.array, y_pred:np.array, model_name:str, run_name
     plt.title(f"True Values vs. Predicted Values for {model_name} - {run_name}")
     plt.xlabel("True Values")
     plt.ylabel("Predicted Values")
-    plt.savefig(true_vs_pred_fig_path, dpi=200, bbox_inches='tight')
+    plt.savefig(true_vs_pred_fig_path, dpi=100, bbox_inches='tight')
     artifacts.append(true_vs_pred_fig_path)
     plt.close()
     return artifacts
@@ -272,7 +277,7 @@ def plot_learning_curve(model, X_train:np.array, y_train:np.array, model_name:st
     metric_score = metric_scores[metric]
     metric_name = metric_names[metric]
     learning_curve_rmse_path = f"{base_path}/{model_name}_{run_name}_learning_curve_{metric_name}.png"
-    train_sizes, train_scores, test_scores = learning_curve(model, X=X_train, y=y_train, train_sizes=np.logspace(-6,0,15), cv=10, n_jobs=4, scoring=metric_score)
+    train_sizes, train_scores, test_scores = learning_curve(model, X=X_train, y=y_train, train_sizes=np.logspace(-6,0,15), cv=10, n_jobs=-1, scoring=metric_score)
     if metric == "r2":
         train_mean = np.mean(train_scores, axis=1)
         train_std = np.std(train_scores, axis=1)
@@ -293,8 +298,151 @@ def plot_learning_curve(model, X_train:np.array, y_train:np.array, model_name:st
     plt.ylabel(f"{metric_name}")
     plt.legend(loc="lower right")
     plt.title(f"Learning Curve for {model_name} - {run_name}")
-    plt.savefig(learning_curve_rmse_path, dpi=200, bbox_inches='tight')
+    plt.savefig(learning_curve_rmse_path, dpi=100, bbox_inches='tight')
+    plt.close()
     artifacts.append(learning_curve_rmse_path)
+    return artifacts
+
+
+def plot_residual_descriptive_stats(y_true:np.array, y_pred:np.array, model_name:str, run_name:str, base_path:str, artifacts:list) -> list:
+    """Plots residual statistical descriptions and distributions from predictions.
+    Produces histogram of residuals and table of descriptive statistics.
+
+    Also does the same for raw errors (difference = y_pred - y_true)
+
+    Args:
+        y_true (np.array): The true values being predicted
+        y_pred (np.array): Tge predicted values
+        model_name (str): The name of the model 
+        run_name (str): The name of the run
+        base_path (str): The base path to save the plots
+        artifacts (list): A list containing paths of artifacts to be saved in MLFlow
+
+    Returns:
+        list: Updated list containing paths of artifacts to be saved in MLFlow. Adds the paths for the plots generated and saved.
+    """
+    # Residuals
+    residual_path = f"{base_path}/{model_name}_{run_name}_residual_descriptive_stats.png"    
+    residuals = pd.DataFrame({"residuals":np.abs(y_true-y_pred)})
+    # Round to 2 decimal places since these values refer to currency
+    residuals_stats = residuals.describe().round(2)
+    # Plot the results as a table
+    ax = plt.subplot(111, frame_on=False)
+    ax.xaxis.set_visible(False)
+    ax.yaxis.set_visible(False)
+    table(ax, residuals_stats, loc='center')
+    plt.title(f"Descriptive Statistics of Residuals for {model_name} - {run_name}")
+    plt.savefig(residual_path, dpi=100, bbox_inches='tight')
+    plt.close()
+    artifacts.append(residual_path)
+
+    # Histogram
+    residual_path = f"{base_path}/{model_name}_{run_name}_residual_distribution.png"   
+    sns.histplot(data=residuals, x="residuals")
+    plt.title(f"Distribution of Residuals for {model_name} - {run_name}")
+    plt.savefig(residual_path, dpi=100, bbox_inches='tight')
+    plt.close()
+    artifacts.append(residual_path)
+
+    # Raw Errors
+    error_path = f"{base_path}/{model_name}_{run_name}_error_descriptive_stats.png"
+    errors = pd.DataFrame({"errors":y_pred - y_true})
+    # Round to 2 decimal places since these values refer to currency
+    errors_stats = errors.describe().round(2)
+    # Plot the errors as a table
+    ax = plt.subplot(111, frame_on=False)
+    ax.xaxis.set_visible(False)
+    ax.yaxis.set_visible(False)
+    table(ax, errors_stats, loc='center')
+    plt.title(f"Descriptive Statistics of Errors for {model_name} - {run_name}")
+    plt.savefig(error_path, dpi=100, bbox_inches='tight')
+    plt.close()
+    artifacts.append(error_path)
+
+    # Histogram
+    error_path = f"{base_path}/{model_name}_{run_name}_error_distribution.png"   
+    sns.histplot(data=errors, x="errors")
+    plt.title(f"Distribution of Errors for {model_name} - {run_name}")
+    plt.savefig(error_path, dpi=100, bbox_inches='tight')
+    plt.close()
+    artifacts.append(error_path)
+    return artifacts
+
+
+def plot_errors_to_features(X_test:np.array, y_true:np.array, y_pred:np.array, feature_names:list, model_name:str, run_name:str, base_path:str, artifacts:list) -> list:
+    """Plots the residuals and raw errors to the features that were used to train and test the model.
+    Will plot trip distance vs trip duration and then r vs theta.
+
+    Args:
+        X_test (np.array): Values that were used as test data for the model
+        y_true (np.array): The true values that the model tried to predict
+        y_pred (np.array): The values that the model predicted
+        feature_names (list): Names of the features for the input test data
+        model_name (str): The name of the model 
+        run_name (str): The name of the run
+        base_path (str): The base path to save the plots
+        artifacts (list): A list containing paths of artifacts to be saved in MLFlow
+
+    Returns:
+        list: Updated list containing paths of artifacts to be saved in MLFlow. Adds the paths for the plots generated and saved.
+    """
+    df = pd.DataFrame(X_test, columns=feature_names)
+    residuals = np.abs(y_true - y_pred)
+    errors = y_pred - y_true
+    df["residuals"] = residuals
+    df["errors"] = errors
+    bins = list(range(0,25,5))
+    bin_labels = bins[1:]
+    df["residuals_bin"] = pd.cut(df["residuals"], bins=bins, labels=bin_labels)
+    df["errors_bin"] = pd.cut(df["errors"], bins=bins, labels=bin_labels)
+    df = df.sort_values(by="errors", ascending=True)
+
+    if "trip_distance" in feature_names and "trip_duration_min" in feature_names:
+        df = df.sort_values(by="residuals", ascending=True)
+        residual_path = f"{base_path}/{model_name}_{run_name}_residuals_distance_vs_duration.png"    
+        sns.scatterplot(data=df, x="trip_distance", y="trip_duration_min", hue="residuals_bin")
+        plt.legend(loc='upper right')
+        plt.title(f"Residuals for {model_name} - {run_name}")
+        plt.xlabel("Trip Distance")
+        plt.ylabel("Trip Duration")
+        plt.savefig(residual_path, dpi=100, bbox_inches='tight')
+        plt.close()
+        artifacts.append(residual_path)
+
+        df = df.sort_values(by="errors", ascending=True)
+        error_path = f"{base_path}/{model_name}_{run_name}_errors_distance_vs_duration.png"    
+        sns.scatterplot(data=df, x="trip_distance", y="trip_duration_min", hue="errors_bin")
+        plt.legend(loc='upper right')
+        plt.title(f"Errors for {model_name} - {run_name}")
+        plt.xlabel("Trip Distance")
+        plt.ylabel("Trip Duration")
+        plt.savefig(error_path, dpi=100, bbox_inches='tight')
+        plt.close()
+        artifacts.append(error_path)
+
+    if "r" in feature_names and "theta" in feature_names:
+        df = df.sort_values(by="residuals", ascending=True)
+        residual_path = f"{base_path}/{model_name}_{run_name}_residuals_r_vs_theta.png"    
+        sns.scatterplot(data=df, x="r", y="theta", hue="residuals_bin")
+        plt.legend(loc='upper right')
+        plt.title(f"Residuals for {model_name} - {run_name}")
+        plt.xlabel("R")
+        plt.ylabel("Theta")
+        plt.savefig(residual_path, dpi=100, bbox_inches='tight')
+        plt.close()
+        artifacts.append(residual_path)
+
+        df = df.sort_values(by="errors", ascending=True)
+        error_path = f"{base_path}/{model_name}_{run_name}_errors_r_vs_theta.png"    
+        sns.scatterplot(data=df, x="r", y="theta", hue="errors_bin")
+        plt.legend(loc='upper right')
+        plt.title(f"Errors for {model_name} - {run_name}")
+        plt.xlabel("R")
+        plt.ylabel("Theta")
+        plt.savefig(error_path, dpi=100, bbox_inches='tight')
+        plt.close()
+        artifacts.append(error_path)
+
     return artifacts
 ##################
 # </Metric Plots>
@@ -306,7 +454,7 @@ def plot_learning_curve(model, X_train:np.array, y_train:np.array, model_name:st
 # <Model Logger for MLFlow>
 ############################
 def get_model_logger(model_name:str) -> Callable:
-    if model_name in ("lasso", "ridge", "elastic_net", "linear_regression", "huber", "svr", "linear_svr", "sgd", "rf_sklearn"):
+    if model_name in ("lasso", "ridge", "elastic_net", "linear_regression", "huber", "svr", "linear_svr", "sgd", "rf_sklearn", "mlp_sklearn"):
         model_logger = mlflow.sklearn.log_model
     elif model_name in ("dart_lgbm", "rf_lgbm", "lgbm"):
         model_logger = mlflow.lightgbm.log_model
@@ -314,6 +462,8 @@ def get_model_logger(model_name:str) -> Callable:
         model_logger = mlflow.xgboost.log_model
     elif model_name in ("catboost"):
         model_logger = mlflow.catboost.log_model
+    elif model_name == "mlp_pytorch":
+        model_logger = mlflow.pytorch.log_model
     else:
         raise RuntimeError(f"Model name not recognized to log model to MLFlow. Got model_name = '{model_name}'")
     return model_logger

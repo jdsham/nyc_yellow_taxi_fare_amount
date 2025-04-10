@@ -1,7 +1,7 @@
 from sklearn.svm import LinearSVR
 import numpy as np
 from sklearn.model_selection import cross_validate
-from custom_funcs import calc_cv_metrics_sklearn, calc_metrics_sklearn, plot_residuals, plot_true_vs_pred, plot_learning_curve
+from custom_funcs import calc_cv_metrics_sklearn, calc_metrics_sklearn, plot_residuals, plot_true_vs_pred, plot_learning_curve, plot_residual_descriptive_stats, plot_errors_to_features
 import argparse
 
 
@@ -39,7 +39,7 @@ def run_linear_svr(X_train:np.array, y_train:np.array, X_test:np.array, y_test:n
 
     model = LinearSVR(**model_params)
     scoring = ["neg_mean_absolute_error", "neg_root_mean_squared_error", "neg_mean_absolute_percentage_error", "r2"]
-    cv = cross_validate(model, X_train, y_train, scoring=scoring, cv=args.cv, n_jobs=-1, params={"sample_weight": W_train})
+    cv = cross_validate(model, X_train, y_train, scoring=scoring, cv=args.cv, n_jobs=4, params={"sample_weight": W_train})
 
     model = LinearSVR(**model_params)
     model.fit(X_train, y_train, sample_weight=W_train)
@@ -62,6 +62,8 @@ def run_linear_svr(X_train:np.array, y_train:np.array, X_test:np.array, y_test:n
     ##################
     # Errors / Residuals
     artifacts = plot_residuals(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_residual_descriptive_stats(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_errors_to_features(X_test, y_test, y_pred, feature_names, model_name, run_name, base_path, artifacts)
     # Truth vs Prediction
     artifacts = plot_true_vs_pred(y_test, y_pred, model_name, run_name, base_path, artifacts)
     # Learning Curve

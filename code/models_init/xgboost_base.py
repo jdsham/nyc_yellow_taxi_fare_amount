@@ -2,9 +2,10 @@ import xgboost as xgb
 import lightgbm as lgb
 import numpy as np
 import matplotlib.pyplot as plt
-from custom_funcs import plot_residuals, plot_true_vs_pred
+from custom_funcs import plot_residuals, plot_true_vs_pred, plot_residual_descriptive_stats, plot_errors_to_features
 from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error, mean_absolute_percentage_error
 import argparse
+plt.switch_backend('agg')
 
 
 def r2_xgb(y_pred:np.array, data:xgb.DMatrix) -> tuple:
@@ -152,6 +153,8 @@ def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.a
     ##################
     # Errors / Residuals
     artifacts = plot_residuals(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_residual_descriptive_stats(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_errors_to_features(X_test, y_test, y_pred, feature_names, model_name, run_name, base_path, artifacts)
     # Truth vs Prediction
     artifacts = plot_true_vs_pred(y_test, y_pred, model_name, run_name, base_path, artifacts)
     ###################
@@ -170,7 +173,7 @@ def run_xgboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.a
     for key in evals["training"].keys():
         metric_plot_path = f"{base_path}/{model_name}_{run_name}_learning_curve_{key}.png"
         lgb.plot_metric(evals, metric=key)
-        plt.savefig(metric_plot_path, dpi=200, bbox_inches='tight')
+        plt.savefig(metric_plot_path, dpi=100, bbox_inches='tight')
         plt.close()
         artifacts.append(metric_plot_path)
     ######################

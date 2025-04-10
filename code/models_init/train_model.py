@@ -41,6 +41,7 @@ def main() -> None:
     n_train_examples = train_df.shape[0]
     n_test_examples = test_df.shape[0]
 
+    # Handle weights
     if args.weights is not None:
         weight_col = args.weights
         W_train = train_df[weight_col].to_frame()

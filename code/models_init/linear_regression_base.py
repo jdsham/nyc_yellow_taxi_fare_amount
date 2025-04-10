@@ -1,7 +1,7 @@
 from sklearn.linear_model import LinearRegression
 import numpy as np
 from sklearn.model_selection import cross_validate
-from custom_funcs import calc_cv_metrics_sklearn, calc_metrics_sklearn, plot_residuals, plot_true_vs_pred, plot_learning_curve
+from custom_funcs import calc_cv_metrics_sklearn, calc_metrics_sklearn, plot_residuals, plot_true_vs_pred, plot_learning_curve, plot_residual_descriptive_stats, plot_errors_to_features
 import argparse
 
 
@@ -64,6 +64,8 @@ def run_linear_regression(X_train:np.array, y_train:np.array, X_test:np.array, y
     ##################
     # Errors / Residuals
     artifacts = plot_residuals(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_residual_descriptive_stats(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_errors_to_features(X_test, y_test, y_pred, feature_names, model_name, run_name, base_path, artifacts)
     # Truth vs Prediction
     artifacts = plot_true_vs_pred(y_test, y_pred, model_name, run_name, base_path, artifacts)
     # Learning Curve

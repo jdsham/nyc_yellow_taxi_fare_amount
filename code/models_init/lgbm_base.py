@@ -2,8 +2,10 @@ import lightgbm as lgb
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
-from custom_funcs import plot_residuals, plot_true_vs_pred
+from custom_funcs import plot_residuals, plot_true_vs_pred, plot_residual_descriptive_stats, plot_errors_to_features
 import argparse
+plt.switch_backend('agg')
+
 
 def r2_lgbm(y_pred:np.array, data:lgb.Dataset) -> tuple:
     """For use with LightGBM API (not compatible with Sklearn API).
@@ -85,6 +87,8 @@ def run_lgbm(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.arra
     ##################
     # Errors / Residuals
     artifacts = plot_residuals(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_residual_descriptive_stats(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_errors_to_features(X_test, y_test, y_pred, feature_names, model_name, run_name, base_path, artifacts)
     # Truth vs Prediction
     artifacts = plot_true_vs_pred(y_test, y_pred, model_name, run_name, base_path, artifacts)
     ###################
@@ -103,7 +107,7 @@ def run_lgbm(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.arra
     for key in evals["training"].keys():
         metric_plot_path = f"{base_path}/{model_name}_{run_name}_learning_curve_{key}.png"
         lgb.plot_metric(evals, metric=key)
-        plt.savefig(metric_plot_path, dpi=200, bbox_inches='tight')
+        plt.savefig(metric_plot_path, dpi=100, bbox_inches='tight')
         plt.close()
         artifacts.append(metric_plot_path)
     ######################

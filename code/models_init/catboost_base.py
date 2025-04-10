@@ -3,9 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import pandas as pd
-from custom_funcs import plot_residuals, plot_true_vs_pred
+from custom_funcs import plot_residuals, plot_true_vs_pred, plot_residual_descriptive_stats, plot_errors_to_features
 import argparse
 from numpy.typing import ArrayLike
+plt.switch_backend('agg')
+
 
 def plot_feature_importance(importance:ArrayLike, names:list) -> None:
     """Plots the feature importances generated from a fitted Catboost model
@@ -102,6 +104,8 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
     ##################
     # Errors / Residuals
     artifacts = plot_residuals(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_residual_descriptive_stats(y_test, y_pred, model_name, run_name, base_path, artifacts)
+    artifacts = plot_errors_to_features(X_test, y_test, y_pred, feature_names, model_name, run_name, base_path, artifacts)
     # Truth vs Prediction
     artifacts = plot_true_vs_pred(y_test, y_pred, model_name, run_name, base_path, artifacts)
     ###################
@@ -113,7 +117,7 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
     #####################
     feat_importance_path = f"{base_path}/{model_name}_{run_name}_feature_importances.png"
     plot_feature_importance(model.get_feature_importance(), feature_names)
-    plt.savefig(feat_importance_path, dpi=200, bbox_inches='tight')
+    plt.savefig(feat_importance_path, dpi=100, bbox_inches='tight')
     artifacts.append(feat_importance_path)
     plt.close()
 
@@ -126,7 +130,7 @@ def run_catboost(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.
         plt.xlabel("Iterations")
         plt.ylabel(f"{key}")
         plt.legend(["Training Loss", "Validation Loss"])
-        plt.savefig(metric_plot_path, dpi=200, bbox_inches='tight')
+        plt.savefig(metric_plot_path, dpi=100, bbox_inches='tight')
         plt.close()
         artifacts.append(metric_plot_path)
     ######################
