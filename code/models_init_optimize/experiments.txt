@@ -1,0 +1,1 @@
+train_model.py --run_name initial_optuna --model linear_svr --data /home/joe/datum/fare_amount_init_clean_6_8_2023.parquet --features trip_distance,trip_duration_min,r,theta --scaler minmax --random_state 42 --experiment_name fare_amount_initial_optuna

@@ -3,7 +3,7 @@ import numpy as np
 import argparse
 import matplotlib.pyplot as plt
 from custom_funcs import calc_metrics_sklearn, plot_residuals, plot_true_vs_pred, plot_residual_descriptive_stats, plot_errors_to_features
-
+import optuna
 
 
 def plot_train_val_loss(training_loss, validation_loss, base_path, artifacts):
@@ -35,6 +35,23 @@ def plot_train_val_loss(training_loss, validation_loss, base_path, artifacts):
     return artifacts
 
 
+def objective(trial, args, X_train, y_train):
+    hidden_layer_sizes = trial.suggest_int("hidden_layer_sizes", 10,100, step=5)
+    alpha = trial.suggest_float("alpha", 0.00001, 0.001, step=0.00001)
+    learning_rate_init = trial.suggest_float("learning_rate_init", 0.001, 0.1, step=0.001)
+    model_params = {"random_state": args.random_state,
+                    "hidden_layer_sizes":hidden_layer_sizes,
+                    "alpha": alpha,
+                    "learning_rate_init": learning_rate_init,
+                    "early_stopping": True,
+                    "validation_fraction":0.01,
+                    }
+    model = MLPRegressor(**model_params)
+    model.fit(X_train, y_train)
+    results = model.best_validation_score_
+    return results
+
+
 def run_mlp_sklearn(X_train:np.array, y_train:np.array, X_test:np.array, y_test:np.array, args:argparse.ArgumentParser, base_path:str, run_name:str, feature_names:list, metrics:dict, artifacts:list, W_train:np.array=None) -> tuple:
     """Uses MLP from SKLearn to train and evaluate model performance with validation data.
     This includes calculating metrics and generating plots to evaluate model performance.
@@ -60,9 +77,18 @@ def run_mlp_sklearn(X_train:np.array, y_train:np.array, X_test:np.array, y_test:
     ####################
     # <Train the Model>
     ####################
+    output_parameters = dict()
     model_name = args.model
+
+    study = optuna.create_study(direction="maximize")
+    study.optimize(lambda trial: objective(trial, args, X_train, y_train), n_trials=30)
+    trial = study.best_trial
+    best_params = trial.params
+    output_parameters = best_params
+
+    model_params = {"early_stopping": True, "random_state": args.random_state} | best_params
   
-    model = MLPRegressor(early_stopping=True, random_state=args.random_state)
+    model = MLPRegressor(**model_params)
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     #####################
