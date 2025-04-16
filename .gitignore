@@ -2,3 +2,4 @@ code/models_init/__pycache__/
 code/models_init/catboost_info/
 code/models_init_optimize/__pycache__/
 code/models_init_ensemble/__pycache__/
+code/models_init_selection/__pycache__/
