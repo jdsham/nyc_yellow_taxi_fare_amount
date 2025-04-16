@@ -1,0 +1,5 @@
+services:
+  model-predict:
+    build: ./src
+    ports:
+      - 7860:7860
