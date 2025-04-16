@@ -41,7 +41,7 @@ For this project, data from 2021 through 2024 will be used.
 A data dictionary in PDF format to accompany the data is available [here](https://www.nyc.gov/assets/tlc/downloads/pdf/data_dictionary_trip_records_yellow.pdf).
 
 ## Scope of the Project
-This project will start with obtaining the published data and work all the way through to building a predictive model (single or ensemble of multiple acceptable models).
+This project will start with obtaining the published data and work all the way through to building and deploying a predictive model (single or ensemble of multiple acceptable models).
 
 Some of the steps are:
 1. Obtain the data
@@ -74,12 +74,14 @@ Software Packages:
 * Optuna
 * Jupyter
 * PySpark
+* FastAPI
 
-A list of package versions will be provided.
+A list of package versions is provided in `/code/requirements.txt`.
 
 Platforms:
 * Azure Data Lake Storage Gen2
 * Azure Synapse / PySpark
 * Azure Machine Learning
+* Docker
 * Local computing
 
