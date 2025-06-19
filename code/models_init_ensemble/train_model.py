@@ -1,24 +1,3 @@
-
-# Stacking Ensemble
-# Ensemble
-    # Light GBM blender
-
-
-# Voting Ensemble
-
-
-# Input parameters:
-#   Data Prep
-#   Which models to use in ensemble
-#   Model parameters
-#   Ensemble to use
-#   Ensemble parameters
-#   
-
-
-
-
-
 import pandas as pd
 import argparse
 import mlflow
